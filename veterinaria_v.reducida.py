@@ -4,14 +4,14 @@ from tabulate import tabulate
 # ========== CONEXIÓN ==========
 def conectar():
     return mysql.connector.connect(
-        host="localhost", 
-        user="root", 
-        password="root1024",
-        database="veterinaria_db", 
+        host="localhost",
+        user="root",
+        password="root1024",  # ⚠️ CAMBIÁ POR TU CONTRASEÑA
+        database="veterinaria_db",
         auth_plugin='mysql_native_password'
-        
     )
 
+# ========== FUNCIÓN REUTILIZABLE PARA CONSULTAS ==========
 def ejecutar_consulta(query, params=None, fetch=False, commit=False):
     conn = conectar()
     cursor = conn.cursor()
@@ -58,12 +58,12 @@ def modificar_generico(tabla, id_nombre, campos):
     ver_generico(*mapas[tabla]["ver"])
     try:
         id_val = int(input(f"\nID del {tabla[:-1]} a modificar: "))
-        actualizados = []
+        actualizados = 0
         for campo in campos:
             nuevo = input(f"Nuevo {campo} (Enter si no cambia): ")
             if nuevo:
                 ejecutar_consulta(f"UPDATE {tabla} SET {campo} = %s WHERE {id_nombre} = %s", (nuevo, id_val), commit=True)
-                actualizados.append(campo)
+                actualizados += 1
         print("✅ Actualizado" if actualizados else "⚠️ Sin cambios")
     except:
         print("❌ Error")
@@ -91,35 +91,6 @@ def alta_mascota():
                       (nombre, especie, edad, id_dueno), commit=True)
     print(f"✅ Mascota '{nombre}' agregada")
 
-# ========== TURNOS (tiene múltiples JOINs) ==========
-def ver_turnos():
-    query = """SELECT t.id_turno, m.nombre, v.nombre, t.fecha, t.hora, t.motivo 
-               FROM turnos t JOIN mascotas m ON t.id_mascota = m.id_mascota
-               JOIN veterinarios v ON t.id_veterinario = v.id_veterinario ORDER BY t.fecha DESC"""
-    datos = ejecutar_consulta(query, fetch=True)
-    print("\n--- LISTADO DE TURNOS ---")
-    print(tabulate(datos, headers=["ID", "MASCOTA", "VETERINARIO", "FECHA", "HORA", "MOTIVO"], tablefmt="rounded_grid") if datos else "ℹ️ Sin turnos")
-
-def alta_turno():
-    mascotas = ejecutar_consulta("SELECT id_mascota, nombre FROM mascotas", fetch=True)
-    if not mascotas:
-        print("⚠️ No hay mascotas")
-        return
-    vets = ejecutar_consulta("SELECT id_veterinario, nombre FROM veterinarios", fetch=True)
-    if not vets:
-        print("⚠️ No hay veterinarios")
-        return
-    print("\nMascotas:", tabulate(mascotas, headers=["ID", "NOMBRE"], tablefmt="simple"), sep="\n")
-    id_mascota = int(input("   ID mascota: "))
-    print("\nVeterinarios:", tabulate(vets, headers=["ID", "NOMBRE"], tablefmt="simple"), sep="\n")
-    id_vet = int(input("   ID veterinario: "))
-    fecha = input("   Fecha (YYYY-MM-DD): ")
-    hora = input("   Hora (HH:MM:SS): ")
-    motivo = input("   Motivo: ")
-    ejecutar_consulta("INSERT INTO turnos (id_mascota, id_veterinario, fecha, hora, motivo) VALUES (%s, %s, %s, %s, %s)",
-                      (id_mascota, id_vet, fecha, hora, motivo), commit=True)
-    print("✅ Turno agendado")
-
 # ========== MAPAS DE CONFIGURACIÓN ==========
 mapas = {
     "duenos": {
@@ -137,14 +108,14 @@ mapas = {
 }
 
 # ========== MENÚS DINÁMICOS ==========
-def menu_entidad(nombre, tabla, tiene_alta_especial=False, tiene_ver_especial=False):
+def menu_entidad(nombre, tabla, tiene_alta_especial=False):
     while True:
         print(f"\n{'-'*40}\n  🐾 {nombre.upper()}\n{'-'*40}")
         print("  1. Alta\n  2. Baja\n  3. Modificación\n  4. Ver todos\n  5. Volver")
         op = input("👉 Opción: ")
         if op == "1":
-            if tiene_alta_especial:
-                alta_mascota() if nombre == "mascotas" else alta_turno()
+            if tiene_alta_especial and nombre == "mascotas":
+                alta_mascota()
             else:
                 alta_generico(*mapas[tabla]["alta"])
         elif op == "2":
@@ -152,7 +123,10 @@ def menu_entidad(nombre, tabla, tiene_alta_especial=False, tiene_ver_especial=Fa
         elif op == "3":
             modificar_generico(*mapas[tabla]["mod"])
         elif op == "4":
-            ver_mascotas() if nombre == "mascotas" else ver_turnos() if nombre == "turnos" else ver_generico(*mapas[tabla]["ver"])
+            if nombre == "mascotas":
+                ver_mascotas()
+            else:
+                ver_generico(*mapas[tabla]["ver"])
         elif op == "5":
             break
         else:
@@ -161,8 +135,8 @@ def menu_entidad(nombre, tabla, tiene_alta_especial=False, tiene_ver_especial=Fa
 
 def menu():
     while True:
-        print("\n" + "="*50 + "\n  🐾 VETTURNOS - GESTIÓN VETERINARIA 🐾\n" + "="*50)
-        print("  1. 🐕 DUEÑOS\n  2. 🐈 MASCOTAS\n  3. 👨‍⚕️ VETERINARIOS\n  4. 📅 TURNOS\n  5. 🚪 SALIR")
+        print("\n" + "="*50 + "\n  🐾 VETGEST - GESTIÓN VETERINARIA 🐾\n" + "="*50)
+        print("  1. 🐕 DUEÑOS\n  2. 🐈 MASCOTAS\n  3. 👨‍⚕️ VETERINARIOS\n  4. 🚪 SALIR")
         op = input("👉 Opción: ")
         if op == "1":
             menu_entidad("dueños", "duenos")
@@ -171,9 +145,7 @@ def menu():
         elif op == "3":
             menu_entidad("veterinarios", "veterinarios")
         elif op == "4":
-            menu_entidad("turnos", "turnos", tiene_alta_especial=True)
-        elif op == "5":
-            print("\n✅ ¡Gracias por usar VetTurnos!\n")
+            print("\n✅ ¡Gracias por usar VetGest!\n")
             break
         else:
             print("\n❌ Opción inválida")
