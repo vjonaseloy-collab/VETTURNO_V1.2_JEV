@@ -23,15 +23,15 @@ def ejecutar_consulta(query, params=None, fetch=False, commit=False):
     conn.close()
     return resultado
 
-# ========== CRUD GENÉRICO ==========
-def alta_generico(tabla, campos):
+# ========== CRUD ==========
+def alta(tabla, campos):
     print(f"\n--- NUEVO {tabla.upper()} ---")
     valores = [input(f"   {campo.capitalize()}: ") for campo in campos]
     placeholders = ", ".join(["%s"] * len(campos))
     ejecutar_consulta(f"INSERT INTO {tabla} ({', '.join(campos)}) VALUES ({placeholders})", valores, commit=True)
     print(f"✅ {tabla[:-1].capitalize()} agregado")
 
-def ver_generico(tabla, campos, join=None):
+def ver(tabla, campos, join=None):
     print(f"\n--- LISTADO DE {tabla.upper()} ---")
     if join:
         query = f"SELECT {', '.join(campos[0])} FROM {tabla} {join}"
@@ -42,8 +42,8 @@ def ver_generico(tabla, campos, join=None):
     datos = ejecutar_consulta(query, fetch=True)
     print(tabulate(datos, headers=headers, tablefmt="rounded_grid") if datos else "ℹ️ Sin registros")
 
-def baja_generico(tabla, id_nombre):
-    ver_generico(*mapas[tabla]["ver"])
+def baja(tabla, id_nombre):
+    ver(*mapas[tabla]["ver"])
     try:
         id_val = int(input(f"\nID del {tabla[:-1]} a eliminar: "))
         if input(f"¿Eliminar {tabla[:-1]} ID {id_val}? (s/n): ").lower() == "s":
@@ -54,8 +54,8 @@ def baja_generico(tabla, id_nombre):
     except:
         print("❌ ID inválido")
 
-def modificar_generico(tabla, id_nombre, campos):
-    ver_generico(*mapas[tabla]["ver"])
+def modificar(tabla, id_nombre, campos):
+    ver(*mapas[tabla]["ver"])
     try:
         id_val = int(input(f"\nID del {tabla[:-1]} a modificar: "))
         actualizados = 0
@@ -117,16 +117,16 @@ def menu_entidad(nombre, tabla, tiene_alta_especial=False):
             if tiene_alta_especial and nombre == "mascotas":
                 alta_mascota()
             else:
-                alta_generico(*mapas[tabla]["alta"])
+                alta(*mapas[tabla]["alta"])
         elif op == "2":
-            baja_generico(*mapas[tabla]["baja"])
+            baja(*mapas[tabla]["baja"])
         elif op == "3":
-            modificar_generico(*mapas[tabla]["mod"])
+            modificar(*mapas[tabla]["mod"])
         elif op == "4":
             if nombre == "mascotas":
                 ver_mascotas()
             else:
-                ver_generico(*mapas[tabla]["ver"])
+                ver(*mapas[tabla]["ver"])
         elif op == "5":
             break
         else:
